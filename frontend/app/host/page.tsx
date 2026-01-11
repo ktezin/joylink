@@ -196,7 +196,7 @@ export default function HostPage() {
 				</button>
 
 				<div className="relative w-full h-full max-w-full max-h-screen aspect-4/3 flex items-center justify-center shadow-2xl">
-					<GameComponent socket={socket} players={players} />
+					<GameComponent socket={socket} players={players} onExit={handleStopGame}/>
 				</div>
 			</div>
 		);

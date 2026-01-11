@@ -64,9 +64,11 @@ const createLevel = () => {
 export default function FireWaterGame({
 	socket,
 	players,
+	onExit,
 }: {
 	socket: any;
 	players: Player[];
+	onExit: () => void;
 }) {
 	const particles = useRef(new ParticleSystem());
 
@@ -81,28 +83,40 @@ export default function FireWaterGame({
 
 	useMemo(() => {
 		socket.on("input", (data: any) => {
-			if (game.current.status !== "PLAYING") return;
 			const p = game.current.players.get(data.playerId);
 			if (!p) return;
 
-			if (data.type === "MOVE") {
-				p.moveInput.x = data.val;
+			if (data.type === "NAV" && data.action === "EXIT") {
+				audioManager.play("fail");
+				onExit();
+			}
 
-				particles.current.emit(
-					p.facingRight ? p.pos.x : p.pos.x + 30,
-					p.pos.y + 30,
-					p.color,
-					5,
-					1
-				);
-			} else if (data.type === "JUMP" && p.isGrounded) {
-				// play effect when only starting to jump for avoiding multiplications
-				if (p.vel.y === 0) {
-					particles.current.emit(p.pos.x, p.pos.y, p.color, 5, 10);
-					audioManager.play("jump", 0.3);
+			if (game.current.status === "PLAYING") {
+				if (data.type === "MOVE") {
+					p.moveInput.x = data.val;
+
+					particles.current.emit(
+						p.facingRight ? p.pos.x : p.pos.x + 30,
+						p.pos.y + 30,
+						p.color,
+						5,
+						1
+					);
+				} else if (data.type === "JUMP" && p.isGrounded) {
+					// play effect when only starting to jump for avoiding multiplications
+					if (p.vel.y === 0) {
+						particles.current.emit(p.pos.x, p.pos.y, p.color, 5, 10);
+						audioManager.play("jump", 0.3);
+					}
+
+					p.vel.y = -p.stats.jumpForce;
 				}
-
-				p.vel.y = -p.stats.jumpForce;
+			} else {
+				if (data.type === "NAV" && data.action === "ENTER") {
+					audioManager.play("select_game");
+					handleRestart();
+					return;
+				}
 			}
 		});
 	}, [socket]);
@@ -115,7 +129,6 @@ export default function FireWaterGame({
 			if (!state.players.has(p.id)) {
 				const isFire = index === 0;
 				const color = isFire ? "#ef4444" : "#3b82f6";
-				const label = isFire ? "FIRE" : "WATER";
 				const startX = isFire ? 80 : 720;
 				const startY = 450;
 				const newP = new Entity(

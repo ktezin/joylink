@@ -19,9 +19,11 @@ const PONG_CONFIG: EngineConfig = {
 export default function PongGame({
 	socket,
 	players,
+	onExit,
 }: {
 	socket: any;
 	players: Player[];
+	onExit: () => void;
 }) {
 	const particles = useRef(new ParticleSystem());
 
@@ -62,6 +64,11 @@ export default function PongGame({
 		const handleInput = (data: any) => {
 			const p = game.current.paddles.get(data.playerId);
 			if (!p) return;
+
+			if (data.type === "NAV" && data.action === "EXIT") {
+				audioManager.play("fail");
+				onExit();
+			}
 
 			if (data.type === "MOVE") {
 				p.moveInput.y = data.val;

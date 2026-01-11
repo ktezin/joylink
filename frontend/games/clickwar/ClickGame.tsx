@@ -10,9 +10,11 @@ function random(min: number, max: number) {
 export default function ClickGame({
 	socket,
 	players,
+	onExit,
 }: {
 	socket: Socket;
 	players: Player[];
+	onExit: () => void;
 }) {
 	const [position, setPosition] = useState(50);
 	const [winner, setWinner] = useState<string | null>(null);
@@ -37,8 +39,17 @@ export default function ClickGame({
 	}, [isSinglePlayer, winner]);
 
 	useEffect(() => {
-		const handleInput = (data: { playerId: string }) => {
-			if (winner) return;
+		const handleInput = (data: any) => {
+			if (data.type === "NAV" && data.action === "EXIT") {
+				audioManager.play("fail");
+				onExit();
+			}
+
+			if (winner && data.type === "NAV" && data.action === "ENTER") {
+				audioManager.play("select_game");
+				handleRestart();
+				return;
+			}
 
 			setPosition((prev) => {
 				const isP1 = data.playerId === players[0].id;
@@ -64,6 +75,11 @@ export default function ClickGame({
 
 		setWinner(player.name + " KAZANDI!");
 		audioManager.play("finish", 0.6);
+	};
+
+	const handleRestart = () => {
+		setPosition(50);
+		setWinner(null);
 	};
 
 	return (
@@ -103,10 +119,7 @@ export default function ClickGame({
 				<div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center animate-in zoom-in">
 					<h1 className="text-6xl font-black text-yellow-400 mb-4">{winner}</h1>
 					<button
-						onClick={() => {
-							setPosition(50);
-							setWinner(null);
-						}}
+						onClick={handleRestart}
 						className="px-8 py-3 bg-white text-black font-bold rounded hover:scale-105 transition-transform"
 					>
 						Tekrar Oyna
