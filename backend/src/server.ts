@@ -64,12 +64,29 @@ io.on("connection", (socket) => {
 				name: name || `Player ${room.players.length}`,
 			});
 
-			socket.emit("joined_success", roomId);
+			const isAdmin = room.players[0] === socket.id;
+
+			socket.emit("joined_success", { roomId, isAdmin });
+
 			console.log(`Player ${name} (${socket.id}) joined room ${roomId}`);
 		} else {
 			socket.emit("error", "Oda bulunamadı!");
 		}
 	});
+
+	socket.on(
+		"request_start_game",
+		(data: { roomId: string; gameId: string }) => {
+			const room = rooms[data.roomId];
+			if (!room) return;
+
+			if (room.players[0] === socket.id) {
+				console.log(`Mobil Admin oyunu başlatıyor: ${data.gameId}`);
+
+				io.to(data.roomId).emit("game_started", { gameId: data.gameId });
+			}
+		}
+	);
 
 	socket.on("start_game", (data: { roomId: string; gameId: string }) => {
 		console.log(`Oyun Başlatılıyor: Oda ${data.roomId} -> Oyun ${data.gameId}`);
@@ -126,7 +143,13 @@ io.on("connection", (socket) => {
 				room.players.splice(playerIndex, 1);
 
 				io.to(room.hostSocketId).emit("player_left", { playerId: socket.id });
+				
 				console.log(`Player ${socket.id} left room ${roomId}`);
+
+				if (playerIndex === 0 && room.players.length > 0) {
+					const newAdminSocketId = room.players[0];
+					io.to(newAdminSocketId).emit("promoted_to_admin");
+				}
 				break;
 			}
 

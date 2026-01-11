@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { socket } from "@/lib/socket";
 import { GAMES } from "@/games/registry";
+import { MenuController } from "./MenuController";
 
 function PlayContent() {
 	const searchParams = useSearchParams();
@@ -14,13 +15,22 @@ function PlayContent() {
 	const [activeGame, setActiveGame] = useState<string | null>(null);
 	const [joined, setJoined] = useState(false);
 	const [error, setError] = useState("");
+	const [isAdmin, setIsAdmin] = useState(false);
 
 	useEffect(() => {
 		socket.connect();
 
-		socket.on("joined_success", (roomId) => {
-			setJoined(true);
-			setError("");
+		socket.on(
+			"joined_success",
+			(data: { roomId: string; isAdmin: boolean }) => {
+				setJoined(true);
+				setIsAdmin(data.isAdmin);
+				setError("");
+			}
+		);
+
+		socket.on("promoted_to_admin", () => {
+			setIsAdmin(true);
 		});
 
 		socket.on("error", (msg) => {
@@ -39,10 +49,14 @@ function PlayContent() {
 		socket.on("room_destroyed", () => {
 			setJoined(false);
 			setCode("");
+			setIsAdmin(false);
 			setError("Host bağlantıyı kesti. Oda kapatıldı.");
 		});
 
 		return () => {
+			socket.off("joined_success");
+			socket.off("promoted_to_admin");
+			socket.off("error");
 			socket.off("game_started");
 			socket.off("game_stopped");
 			socket.off("room_destroyed");
@@ -65,20 +79,31 @@ function PlayContent() {
 		});
 	};
 
+	const handleStartGameRequest = (gameId: string) => {
+		socket.emit("request_start_game", {
+			roomId: code.toUpperCase(),
+			gameId: gameId,
+		});
+	};
+
 	if (joined) {
 		if (activeGame && GAMES[activeGame]) {
 			const Controller = GAMES[activeGame].ControllerComponent;
 			return <Controller socket={socket} />;
 		}
 
+		if (isAdmin) {
+			return <MenuController />;
+		}
+
 		return (
 			<div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center">
 				<div className="w-16 h-16 bg-blue-600 rounded-full animate-pulse mb-6 flex items-center justify-center">
-					<span className="text-3xl">🎮</span>
+					<span className="text-3xl">⏳</span>
 				</div>
 				<h1 className="text-2xl font-bold mb-2 text-green-400">Bağlandı!</h1>
 				<p className="text-slate-400">
-					Host (Bilgisayar) üzerinden bir oyun seçmesini bekle.
+					Oyun yöneticisinin bir oyun seçmesi bekleniyor...
 				</p>
 			</div>
 		);

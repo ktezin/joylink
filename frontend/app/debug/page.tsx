@@ -1,20 +1,24 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+
+import React, { useEffect, useMemo } from "react";
 import { EventEmitter } from "events";
 import { Player } from "@/types";
 import { useSearchParams } from "next/navigation";
 import { GAMES } from "@/games/registry";
 
 const MOCK_PLAYERS: Player[] = [
-	{ id: "p1_debug", name: "DEBUG_FIRE", color: "#ef4444" },
-	{ id: "p2_debug", name: "DEBUG_WATER", color: "#3b82f6" },
+	{ id: "p1_debug", name: "DEBUG_P1", color: "#ef4444" },
+	{ id: "p2_debug", name: "DEBUG_P2", color: "#3b82f6" },
 ];
 
 export default function DebugPage() {
 	const searchParams = useSearchParams();
+
 	const gameId = searchParams.get("game") || "";
 
-	const GameComponent = GAMES[gameId].HostComponent;
+	const GameComponent = GAMES[gameId]?.HostComponent;
+
+	if (!gameId || !GameComponent) return;
 
 	const mockSocket = useMemo(() => new EventEmitter(), []);
 
@@ -61,24 +65,21 @@ export default function DebugPage() {
 		const x = Math.floor((e.clientX - rect.left) * scaleX);
 		const y = Math.floor((e.clientY - rect.top) * scaleY);
 
-		console.log(`📍 Koordinat: x: ${x}, y: ${y}`);
 		navigator.clipboard.writeText(`x: ${x}, y: ${y}`);
 
-		//alert(`Koordinat Kopyalandı: ${x}, ${y}`);
+		//alert(`Copied: ${x}, ${y}`);
 	};
 
 	return (
 		<div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
 			<div className="mb-4 text-center">
-				<h1 className="text-3xl font-bold text-yellow-400">
-					LEVEL TASARIM MODU
-				</h1>
+				<h1 className="text-3xl font-bold text-yellow-400">DEBUG MODE</h1>
 				<p className="text-slate-400 text-sm mt-2">
-					<span className="text-red-400 font-bold">P1 (Ateş):</span> Yön Tuşları
-					|<span className="text-blue-400 font-bold ml-2">P2 (Su):</span> WASD
+					<span className="text-red-400 font-bold">P1:</span> ARROW KEYS |
+					<span className="text-blue-400 font-bold ml-2">P2:</span> WASD
 				</p>
 				<p className="text-xs text-slate-500 mt-1">
-					Platform koordinatı almak için ekrana tıkla.
+					Click the screen to copy coordinates
 				</p>
 			</div>
 

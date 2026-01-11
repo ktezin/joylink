@@ -1,3 +1,4 @@
+import { audioManager } from "@/lib/audio/AudioManager";
 import { Player } from "@/types";
 import { useEffect, useState, useRef } from "react";
 import { Socket } from "socket.io-client";
@@ -44,18 +45,26 @@ export default function ClickGame({
 				const change = isP1 ? -2 : 2;
 				const newPos = prev + change;
 
-				if (newPos <= 0) setWinner(players[0].name + " KAZANDI!");
-				if (newPos >= 100) setWinner(players[1].name + " KAZANDI!");
+				if (newPos <= 0) finishGame(players[0]);
+				if (newPos >= 100) finishGame(players[1]);
 
 				return Math.max(0, Math.min(100, newPos));
 			});
 		};
 
 		socket.on("input", handleInput);
+
 		return () => {
 			socket.off("input", handleInput);
 		};
 	}, [players, winner, socket]);
+
+	const finishGame = (player: Player) => {
+		if (winner) return;
+
+		setWinner(player.name + " KAZANDI!");
+		audioManager.play("finish", 0.6);
+	};
 
 	return (
 		<div className="flex flex-col items-center justify-center h-full w-full bg-slate-800 text-white relative overflow-hidden">

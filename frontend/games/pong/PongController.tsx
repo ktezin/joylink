@@ -7,8 +7,8 @@ interface PongControllerProps {
 
 export default function PongController({ socket }: PongControllerProps) {
 	const sendInput = (dir: number) => {
-		socket.emit("input", { action: "move", value: dir });
-	};
+		socket.emit("input", { type: "MOVE", val: dir });
+	}
 
 	return (
 		<div className="h-screen w-full flex flex-col bg-slate-900 select-none touch-none">

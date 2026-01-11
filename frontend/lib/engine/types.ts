@@ -25,3 +25,15 @@ export interface GameState {
 	status: "PLAYING" | "WON" | "GAME_OVER";
 	level: number;
 }
+
+export interface Particle {
+	x: number;
+	y: number;
+	vx: number;
+	vy: number;
+	life: number;
+	maxLife: number;
+	color: string;
+	size: number;
+	shape: "square" | "circle";
+}

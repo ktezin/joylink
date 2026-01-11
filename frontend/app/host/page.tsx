@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { socket } from "@/lib/socket";
 import QRCode from "react-qr-code";
 import { GAMES } from "@/games/registry";
-import { Copy, Monitor, Users, Gamepad2 } from "lucide-react";
+import { Monitor, Gamepad2, Users } from "lucide-react";
+import { audioManager } from "@/lib/audio/AudioManager";
 
 export interface Player {
 	id: string;
@@ -13,21 +14,52 @@ export interface Player {
 
 export default function HostPage() {
 	const [roomId, setRoomId] = useState<string>("");
+
 	const [players, setPlayers] = useState<Player[]>([]);
+
 	const [status, setStatus] = useState("Sunucuya bağlanıyor...");
+
 	const [activeGameId, setActiveGameId] = useState<string | null>(null);
+
 	const [gameInterrupted, setGameInterrupted] = useState(false);
+
+	const gamesList = Object.values(GAMES);
+
+	const [selectedIndex, setSelectedIndex] = useState(0);
+
+	const activeGameIdRef = useRef<string | null>(null);
+	const selectedIndexRef = useRef(0);
+	const playersRef = useRef<Player[]>([]);
+	const roomIdRef = useRef("");
+
+	useEffect(() => {
+		activeGameIdRef.current = activeGameId;
+	}, [activeGameId]);
+
+	useEffect(() => {
+		selectedIndexRef.current = selectedIndex;
+	}, [selectedIndex]);
+
+	useEffect(() => {
+		playersRef.current = players;
+	}, [players]);
+
+	useEffect(() => {
+		roomIdRef.current = roomId;
+	}, [roomId]);
 
 	useEffect(() => {
 		socket.connect();
 
 		socket.on("connect", () => {
 			setStatus("Oda kuruluyor...");
+
 			socket.emit("create_room");
 		});
 
 		socket.on("room_created", (id: string) => {
 			setRoomId(id);
+
 			setStatus("Oyuncular bekleniyor...");
 		});
 
@@ -39,14 +71,82 @@ export default function HostPage() {
 			setPlayers((prev) => prev.filter((p) => p.id !== data.playerId));
 		});
 
+		socket.on("input", (data: any) => {
+			if (activeGameIdRef.current) return;
+
+			if (data.type === "NAV") {
+				const current = selectedIndexRef.current;
+
+				const total = gamesList.length;
+
+				if (["RIGHT", "LEFT", "UP", "DOWN"].includes(data.action)) {
+					audioManager.play("hit", 0.3);
+				}
+
+				if (data.action === "RIGHT") setSelectedIndex((current + 1) % total);
+				else if (data.action === "LEFT")
+					setSelectedIndex((current - 1 + total) % total);
+				else if (data.action === "DOWN") {
+					const next = current + 2;
+
+					setSelectedIndex(next < total ? next : current);
+				} else if (data.action === "UP") {
+					const prev = current - 2;
+
+					setSelectedIndex(prev >= 0 ? prev : current);
+				} else if (data.action === "ENTER") {
+					const selectedGame = gamesList[current];
+
+					const currentPlayers = playersRef.current;
+
+					const currentRoomId = roomIdRef.current;
+
+					const minRequired = selectedGame.minPlayers;
+
+					if (currentPlayers.length < minRequired) {
+						console.log("Yetersiz oyuncu");
+
+						return;
+					}
+
+					audioManager.play("select_game", 0.6);
+
+					setActiveGameId(selectedGame.id);
+
+					socket.emit("start_game", {
+						roomId: currentRoomId,
+						gameId: selectedGame.id,
+					});
+				}
+			}
+		});
+
 		return () => {
-			socket.off("connect");
-			socket.off("room_created");
-			socket.off("player_joined");
-			socket.off("player_left");
 			socket.disconnect();
 		};
 	}, []);
+
+	const handleStartGameClick = (gameId: string) => {
+		const game = GAMES[gameId];
+
+		const minRequired = game.minPlayers;
+
+		if (players.length < minRequired) {
+			alert(`Bu oyun için en az ${minRequired} kişi lazım!`);
+
+			return;
+		}
+
+		setActiveGameId(gameId);
+
+		socket.emit("start_game", { roomId, gameId });
+	};
+
+	const handleStopGame = () => {
+		setActiveGameId(null);
+
+		socket.emit("stop_game", { roomId });
+	};
 
 	useEffect(() => {
 		if (activeGameId && GAMES[activeGameId]) {
@@ -60,22 +160,6 @@ export default function HostPage() {
 		}
 	}, [players, activeGameId]);
 
-	const handleStartGame = (gameId: string) => {
-		const minRequired = GAMES[gameId].minPlayers;
-
-		if (players.length < minRequired) {
-			alert(`Bu oyunu başlatmak için en az ${minRequired} oyuncu lazım!`);
-			return;
-		}
-		setActiveGameId(gameId);
-		socket.emit("start_game", { roomId, gameId });
-	};
-
-	const handleStopGame = () => {
-		setActiveGameId(null);
-		socket.emit("stop_game", { roomId });
-	};
-
 	if (activeGameId && GAMES[activeGameId]) {
 		const GameComponent = GAMES[activeGameId].HostComponent;
 
@@ -86,12 +170,15 @@ export default function HostPage() {
 						<div className="bg-red-600/20 p-6 rounded-full mb-6 border-4 border-red-500 animate-pulse">
 							<Users size={64} className="text-red-500" />
 						</div>
+
 						<h2 className="text-5xl font-black text-white mb-4">
 							OYUNCU AYRILDI!
 						</h2>
+
 						<p className="text-xl text-slate-300 mb-8 max-w-md">
 							Oyunculardan biri bağlantıyı kesti. Oyun iptal edildi.
 						</p>
+
 						<button
 							onClick={handleStopGame}
 							className="bg-red-600 hover:bg-red-500 text-white text-xl font-bold px-8 py-4 rounded-xl transition-all hover:scale-105 shadow-lg shadow-red-900/50"
@@ -122,6 +209,7 @@ export default function HostPage() {
 					<h1 className="text-5xl md:text-6xl font-black tracking-tighter bg-linear-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
 						JoyLink
 					</h1>
+
 					<p className="text-slate-400 mt-2 flex items-center gap-2">
 						<Monitor size={16} /> Host Ekranı
 					</p>
@@ -140,6 +228,7 @@ export default function HostPage() {
 								players[0] ? "bg-blue-400 animate-pulse" : "bg-slate-600"
 							}`}
 						></div>
+
 						<span className="font-bold">
 							{players[0] ? players[0].name : "Bekleniyor..."}
 						</span>
@@ -157,6 +246,7 @@ export default function HostPage() {
 								players[1] ? "bg-red-400 animate-pulse" : "bg-slate-600"
 							}`}
 						></div>
+
 						<span className="font-bold">
 							{players[1] ? players[1].name : "Bekleniyor..."}
 						</span>
@@ -171,35 +261,61 @@ export default function HostPage() {
 					</h2>
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-						{Object.values(GAMES).map((game) => (
-							<div
-								key={game.id}
-								onClick={() => handleStartGame(game.id)}
-								className="group relative bg-slate-900 border border-slate-800 hover:border-blue-500/50 rounded-2xl p-1 overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] cursor-pointer active:scale-95"
-							>
-								<div className="bg-slate-800 rounded-xl p-6 h-full flex flex-col relative z-10">
-									<div className="h-32 mb-4 bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-6xl group-hover:scale-105 transition-transform duration-500">
-										{game.id === "pong" ? "🏓" : "💪"}
-									</div>
-									<h3 className="text-2xl font-bold text-white mb-2">
-										{game.name}
-									</h3>
-									<p className="text-slate-400 text-sm leading-relaxed">
-										{game.description}
-									</p>
+						{gamesList.map((game, index) => {
+							const isSelected = index === selectedIndex;
 
-									<div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center">
-										<span className="text-xs font-mono text-slate-500 uppercase tracking-widest">
-											2 Players
-										</span>
-										<span className="text-blue-400 text-sm font-bold group-hover:translate-x-1 transition-transform">
-											Başlat &rarr;
-										</span>
+							return (
+								<div
+									key={game.id}
+									onClick={() => {
+										setSelectedIndex(index);
+
+										handleStartGameClick(game.id);
+									}}
+									className={`
+                                        relative rounded-2xl p-1 overflow-hidden transition-all duration-300 cursor-pointer
+                                        ${
+																					isSelected
+																						? "scale-105 shadow-[0_0_40px_rgba(59,130,246,0.4)] ring-4 ring-blue-500 z-10"
+																						: "opacity-60 hover:opacity-100 scale-95 border border-slate-800"
+																				}
+
+                                    `}
+								>
+									<div
+										className={`bg-slate-800 rounded-xl p-6 h-full flex flex-col relative z-10 ${
+											isSelected ? "bg-slate-700" : ""
+										}`}
+									>
+										<div className="h-32 mb-4 bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-6xl">
+											{game.id === "pong" ? "🏓" : "💪"}
+										</div>
+
+										<h3
+											className={`text-2xl font-bold mb-2 ${
+												isSelected ? "text-blue-400" : "text-white"
+											}`}
+										>
+											{game.name}
+										</h3>
+
+										<p className="text-slate-400 text-sm">{game.description}</p>
+
+										{isSelected && (
+											<div className="mt-4 pt-4 border-t border-slate-600 flex justify-between items-center animate-pulse">
+												<span className="text-blue-300 font-bold text-sm">
+													BAŞLATMAK İÇİN
+												</span>
+
+												<div className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold shadow-lg">
+													ENTER
+												</div>
+											</div>
+										)}
 									</div>
 								</div>
-								<div className="absolute inset-0 bg-linear-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl -z-10"></div>
-							</div>
-						))}
+							);
+						})}
 					</div>
 				</div>
 
@@ -221,6 +337,7 @@ export default function HostPage() {
 						<p className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-1">
 							Oda Kodu
 						</p>
+
 						<div className="text-5xl font-mono font-black text-slate-900 tracking-tighter mb-4">
 							{roomId || "...."}
 						</div>
@@ -234,10 +351,14 @@ export default function HostPage() {
 						<h3 className="font-bold text-slate-300 mb-2 flex items-center gap-2">
 							<Users size={18} /> Nasıl Çalışır?
 						</h3>
+
 						<ol className="text-sm text-slate-400 space-y-2 list-decimal list-inside">
 							<li>Telefonunuzdan QR kodu okutun.</li>
+
 							<li>Sıraya girin (Maks 2 kişi).</li>
+
 							<li>Host ekranından oyunu seçin.</li>
+
 							<li>Telefonunuz kontrolcüye dönüşsün!</li>
 						</ol>
 					</div>

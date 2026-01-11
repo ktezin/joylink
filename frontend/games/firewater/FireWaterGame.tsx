@@ -3,9 +3,11 @@ import { Entity } from "@/lib/engine/Entity";
 import { Physics } from "@/lib/engine/Physics";
 import { Renderer } from "@/lib/engine/Renderer";
 import { useJoyEngine } from "@/hooks/useJoyEngine";
-import { EngineConfig } from "@/lib/engine/types";
+import { EngineConfig, Vector2 } from "@/lib/engine/types";
 import { Player } from "@/types";
 import { LevelBuilder } from "@/lib/engine/LevelBuilder";
+import { ParticleSystem } from "@/lib/engine/ParticleSystem";
+import { audioManager } from "@/lib/audio/AudioManager";
 
 const CONFIG: EngineConfig = {
 	mode: "platformer",
@@ -22,14 +24,14 @@ const createLevel = () => {
 		S: { type: "SOLID", label: "water", color: "#3b82f6" },
 		F: {
 			type: "TRIGGER",
-			label: "door_fire",
+			label: "door_red",
 			color: "#7f1d1d",
 			height: 60,
 			offsetY: -20,
 		},
 		W: {
 			type: "TRIGGER",
-			label: "door_water",
+			label: "door_blue",
 			color: "#1e3a8a",
 			height: 60,
 			offsetY: -20,
@@ -66,6 +68,8 @@ export default function FireWaterGame({
 	socket: any;
 	players: Player[];
 }) {
+	const particles = useRef(new ParticleSystem());
+
 	const [gameStateDisplay, setGameStateDisplay] = useState<string | null>(null);
 
 	const game = useRef({
@@ -83,7 +87,21 @@ export default function FireWaterGame({
 
 			if (data.type === "MOVE") {
 				p.moveInput.x = data.val;
+
+				particles.current.emit(
+					p.facingRight ? p.pos.x : p.pos.x + 30,
+					p.pos.y + 30,
+					p.color,
+					5,
+					1
+				);
 			} else if (data.type === "JUMP" && p.isGrounded) {
+				// play effect when only starting to jump for avoiding multiplications
+				if (p.vel.y === 0) {
+					particles.current.emit(p.pos.x, p.pos.y, p.color, 5, 10);
+					audioManager.play("jump", 0.3);
+				}
+
 				p.vel.y = -p.stats.jumpForce;
 			}
 		});
@@ -103,7 +121,7 @@ export default function FireWaterGame({
 				const newP = new Entity(
 					p.id,
 					"PLAYER",
-					label,
+					p.name,
 					startX,
 					startY,
 					30,
@@ -129,27 +147,39 @@ export default function FireWaterGame({
 
 				allObjects.forEach((obj) => {
 					if (Physics.checkOverlap(player, obj, -2)) {
-						if (obj.label === "lava" && !isFire) killGame();
-						if (obj.label === "water" && isFire) killGame();
-						if (obj.label === "slime") killGame();
+						if (obj.label === "lava" && !isFire) killGame(player);
+						if (obj.label === "water" && isFire) killGame(player);
+						if (obj.label === "slime") killGame(player);
 					}
 				});
 
 				state.doors.forEach((door) => {
-					if (Physics.checkOverlap(player, door, 15)) {
+					if (Physics.checkOverlap(player, door, 10)) {
 						if (
-							(door.label === "door_fire" && isFire) ||
-							(door.label === "door_water" && !isFire)
+							(door.label === "door_red" && isFire) ||
+							(door.label === "door_blue" && !isFire)
 						) {
-							state.finishedPlayers.add(player.id);
+							if (!state.finishedPlayers.has(player.id)) {
+								state.finishedPlayers.add(player.id);
+								door.setStats({ speed: 1 });
+								audioManager.play("score");
+								particles.current.emit(
+									player.pos.x,
+									player.pos.y,
+									player.color,
+									50,
+									10
+								);
+							}
 						}
 					} else {
 						if (
 							state.finishedPlayers.has(player.id) &&
-							((door.label === "door_fire" && isFire) ||
-								(door.label === "door_water" && !isFire))
+							((door.label === "door_red" && isFire) ||
+								(door.label === "door_blue" && !isFire))
 						) {
 							state.finishedPlayers.delete(player.id);
+							door.setStats({ speed: 0 });
 						}
 					}
 				});
@@ -159,16 +189,22 @@ export default function FireWaterGame({
 				state.players.size > 0 &&
 				state.finishedPlayers.size === state.players.size
 			) {
-				state.status = "WON";
-				setGameStateDisplay("BÖLÜM GEÇİLDİ! 🎉");
+				finishGame();
 			}
 		}
+
+		particles.current.update();
+		particles.current.draw(ctx);
 
 		state.doors.forEach((d) => {
 			ctx.fillStyle = d.color;
 			ctx.fillRect(d.pos.x, d.pos.y, d.size.x, d.size.y);
-			ctx.fillStyle = "#000";
-			ctx.fillRect(d.pos.x + 5, d.pos.y + 5, d.size.x - 10, d.size.y - 5);
+
+			// We set door's speed to 1 when player is in the door
+			if (d.stats.speed != 1) {
+				ctx.fillStyle = "#000";
+				ctx.fillRect(d.pos.x + 5, d.pos.y + 5, d.size.x - 10, d.size.y - 5);
+			}
 		});
 		state.hazards.forEach((h) => Renderer.draw(ctx, h));
 		state.walls.forEach((w) => Renderer.draw(ctx, w));
@@ -176,9 +212,16 @@ export default function FireWaterGame({
 		state.players.forEach((p) => Renderer.draw(ctx, p));
 	});
 
-	const killGame = () => {
+	const killGame = (player: Entity) => {
+		audioManager.play("fail");
 		game.current.status = "GAME_OVER";
-		setGameStateDisplay("YANDINIZ! 💀");
+		setGameStateDisplay(player.label + " YANDI! 💀");
+	};
+
+	const finishGame = () => {
+		audioManager.play("finish");
+		game.current.status = "WON";
+		setGameStateDisplay("BÖLÜM GEÇİLDİ! 🎉");
 	};
 
 	const handleRestart = () => {
