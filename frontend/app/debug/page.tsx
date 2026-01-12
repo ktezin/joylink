@@ -27,10 +27,12 @@ export default function DebugPage() {
 			if (e.key === "ArrowRight") emitInput("p1_debug", "MOVE", 1);
 			if (e.key === "ArrowLeft") emitInput("p1_debug", "MOVE", -1);
 			if (e.key === "ArrowUp") emitInput("p1_debug", "JUMP");
+			if (e.key === "ArrowDown") emitInput("p1_debug", "SHOOT");
 
 			if (e.key === "d") emitInput("p2_debug", "MOVE", 1);
 			if (e.key === "a") emitInput("p2_debug", "MOVE", -1);
 			if (e.key === "w") emitInput("p2_debug", "JUMP");
+			if (e.key === "s") emitInput("p2_debug", "SHOOT");
 		};
 
 		const handleKeyUp = (e: KeyboardEvent) => {

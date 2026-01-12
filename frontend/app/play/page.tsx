@@ -89,7 +89,7 @@ function PlayContent() {
 	if (joined) {
 		if (activeGame && GAMES[activeGame]) {
 			const Controller = GAMES[activeGame].ControllerComponent;
-			return <Controller socket={socket} />;
+			return <Controller socket={socket} isAdmin={isAdmin} />;
 		}
 
 		if (isAdmin) {
