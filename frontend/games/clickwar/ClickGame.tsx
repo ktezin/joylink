@@ -29,7 +29,7 @@ export default function ClickGame({
 
 					const newPos = prev + 3;
 
-					if (newPos >= 100) setWinner("AI (KIRMIZI) KAZANDI!");
+					if (newPos >= 100) setWinner("AI (RED) WON!");
 					return Math.min(100, newPos);
 				});
 			}, random(100, 400));
@@ -73,7 +73,7 @@ export default function ClickGame({
 	const finishGame = (player: Player) => {
 		if (winner) return;
 
-		setWinner(player.name + " KAZANDI!");
+		setWinner(player.name + " WON!");
 		audioManager.play("finish", 0.6);
 	};
 
@@ -105,14 +105,14 @@ export default function ClickGame({
 			</div>
 
 			<div className="flex justify-between w-3/4 mt-8 font-bold text-2xl">
-				<span className="text-blue-400">{players[0]?.name || "P1"} (Mavi)</span>
+				<span className="text-blue-400">{players[0]?.name || "P1"} (Blue)</span>
 				<span className="text-red-400">
-					{players[1] ? players[1].name : "CPU"} (Kırmızı)
+					{players[1] ? players[1].name : "CPU"} (Red)
 				</span>
 			</div>
 
 			<div className="absolute top-4 left-4 bg-slate-800 px-3 py-1 rounded text-sm text-slate-400">
-				Mod: {isSinglePlayer ? "1 vs AI" : "1 vs 1"}
+				Mode: {isSinglePlayer ? "1 vs AI" : "1 vs 1"}
 			</div>
 
 			{winner && (
@@ -122,7 +122,7 @@ export default function ClickGame({
 						onClick={handleRestart}
 						className="px-8 py-3 bg-white text-black font-bold rounded hover:scale-105 transition-transform"
 					>
-						Tekrar Oyna
+						Play Again
 					</button>
 				</div>
 			)}

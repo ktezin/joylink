@@ -73,7 +73,7 @@ export default function PongGame({
 
 	const startGoalSequence = (scorerName: string) => {
 		gameState.current.mode = "GOAL_SCORED";
-		gameState.current.goalText = scorerName + " ATTI!";
+		gameState.current.goalText = scorerName + " SCORED!";
 		gameState.current.countdownVal = 3;
 
 		const interval = setInterval(() => {
@@ -258,7 +258,7 @@ export default function PongGame({
 			if (Math.floor(Date.now() / 200) % 2 === 0) ctx.fillStyle = "#fbbf24";
 			else ctx.fillStyle = "#fff";
 			ctx.font = "bold 100px sans-serif";
-			ctx.fillText("GOL!", 400, 250);
+			ctx.fillText("GOAL!", 400, 250);
 
 			ctx.font = "bold 40px sans-serif";
 			ctx.fillStyle = "#fff";
@@ -266,7 +266,7 @@ export default function PongGame({
 
 			ctx.font = "bold 30px monospace";
 			ctx.fillStyle = "#94a3b8";
-			ctx.fillText(`Başlıyor: ${gameState.current.countdownVal}`, 400, 450);
+			ctx.fillText(`Starting in: ${gameState.current.countdownVal}`, 400, 450);
 		}
 	});
 
@@ -286,7 +286,7 @@ export default function PongGame({
 			gameState.current.mode = "GAME_OVER";
 			const wName = players[winnerIdx].name;
 			audioManager.play("win");
-			setGameStateDisplay(`${wName} KAZANDI!`);
+			setGameStateDisplay(`${wName} WON!`);
 		} else {
 			startGoalSequence(players[winnerIdx].name);
 		}
@@ -323,7 +323,7 @@ export default function PongGame({
 							onClick={handleRestart}
 							className="bg-green-600 text-white px-8 py-4 rounded-xl font-bold text-xl hover:bg-green-500 transition-colors border-b-4 border-green-800 active:border-b-0 active:translate-y-1"
 						>
-							TEKRAR OYNA
+							Play Again
 						</button>
 					</div>
 				</div>

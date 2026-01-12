@@ -12,9 +12,9 @@ export const MenuController = () => {
 		<div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 select-none">
 			<div className="text-center mb-8">
 				<h2 className="text-2xl font-bold text-yellow-400 mb-2">
-					Menü Kontrolü
+					Menu Control
 				</h2>
-				<p className="text-slate-400 text-sm">Host ekranındaki oyunu seç.</p>
+				<p className="text-slate-400 text-sm">Select a game to start!</p>
 			</div>
 
 			<div className="relative w-64 h-64 bg-slate-800 rounded-full shadow-2xl border-4 border-slate-700 flex items-center justify-center mb-12">
@@ -51,10 +51,10 @@ export const MenuController = () => {
 
 			<button
 				onClick={() => sendNav("ENTER")}
-				className="w-full max-w-xs bg-green-600 hover:bg-green-500 text-white font-bold py-6 rounded-2xl text-xl shadow-lg shadow-green-900/40 active:scale-95 transition-all flex items-center justify-center gap-3"
+				className="w-full max-w-xs bg-green-600 hover:bg-green-500 text-white font-black py-6 rounded-2xl text-xl shadow-lg shadow-green-900/40 active:scale-95 transition-all flex items-center justify-center gap-3"
 			>
 				<Check size={32} />
-				SEÇ / BAŞLAT
+				SELECT / START
 			</button>
 		</div>
 	);

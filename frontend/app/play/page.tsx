@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { socket } from "@/lib/socket";
 import { GAMES } from "@/games/registry";
 import { MenuController } from "./MenuController";
+import { AudioWaveform, Hourglass } from "lucide-react";
 
 function PlayContent() {
 	const searchParams = useSearchParams();
@@ -38,7 +39,7 @@ function PlayContent() {
 		});
 
 		socket.on("game_started", (data) => {
-			console.log("SİNYAL ALINDI! Oyun ID:", data.gameId);
+			console.log("Game started! Id:", data.gameId);
 			setActiveGame(data.gameId);
 		});
 
@@ -50,7 +51,7 @@ function PlayContent() {
 			setJoined(false);
 			setCode("");
 			setIsAdmin(false);
-			setError("Host bağlantıyı kesti. Oda kapatıldı.");
+			setError("Host disconnected. Room closed.");
 		});
 
 		return () => {
@@ -65,11 +66,11 @@ function PlayContent() {
 
 	const handleJoin = () => {
 		if (!code) {
-			setError("Oda kodu gerekli!");
+			setError("Room code is required!");
 			return;
 		}
 		if (!name) {
-			setError("İsim girmelisin!");
+			setError("Nickname is required!");
 			return;
 		}
 
@@ -99,11 +100,11 @@ function PlayContent() {
 		return (
 			<div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center">
 				<div className="w-16 h-16 bg-blue-600 rounded-full animate-pulse mb-6 flex items-center justify-center">
-					<span className="text-3xl">⏳</span>
+					<Hourglass size={36} />
 				</div>
-				<h1 className="text-2xl font-bold mb-2 text-green-400">Bağlandı!</h1>
+				<h1 className="text-2xl font-bold mb-2 text-green-400">Connected!</h1>
 				<p className="text-slate-400">
-					Oyun yöneticisinin bir oyun seçmesi bekleniyor...
+					Waiting for the room admin to choose a game...
 				</p>
 			</div>
 		);
@@ -112,15 +113,24 @@ function PlayContent() {
 	return (
 		<div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6">
 			<div className="w-full max-w-sm space-y-6">
-				<div className="text-center">
-					<h1 className="text-3xl font-bold text-blue-400">JoyLink</h1>
-					<p className="text-slate-400">Odaya Katıl</p>
+				<div className="text-center space-y-2">
+					<div className="flex items-center justify-center gap-4">
+						<div className="bg-linear-to-br from-purple-600 to-blue-600 p-3 rounded-2xl shadow-lg shadow-purple-900/50">
+							<AudioWaveform size={32} className="text-white" />
+						</div>
+						<div>
+							<h1 className="text-3xl font-black tracking-tighter bg-linear-to-r from-white to-slate-400 bg-clip-text text-transparent">
+								JoyLink
+							</h1>
+						</div>
+					</div>
+					<p className="text-slate-400">Join to a game room</p>
 				</div>
 
 				<div className="space-y-4">
 					<div>
 						<label className="text-xs text-slate-500 font-bold ml-1">
-							ODA KODU
+							ROOM CODE
 						</label>
 						<input
 							type="text"
@@ -134,13 +144,13 @@ function PlayContent() {
 
 					<div>
 						<label className="text-xs text-slate-500 font-bold ml-1">
-							LAKAP / İSİM
+							NICKNAME
 						</label>
 						<input
 							type="text"
 							value={name}
 							onChange={(e) => setName(e.target.value.toUpperCase())}
-							placeholder="Örn: HızlıGonzales"
+							placeholder="NICKNAME"
 							className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-center text-xl font-bold focus:outline-none focus:ring-2 focus:ring-green-500"
 							maxLength={10}
 						/>
@@ -156,7 +166,7 @@ function PlayContent() {
 						onClick={handleJoin}
 						className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-lg transition-all active:scale-95 shadow-lg shadow-blue-900/20"
 					>
-						OYUNA GİR
+						JOIN
 					</button>
 				</div>
 			</div>

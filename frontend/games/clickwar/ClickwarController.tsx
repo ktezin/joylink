@@ -48,11 +48,11 @@ export default function ClickController({
 					onPointerDown={handleClick}
 				>
 					<span className="text-4xl font-black text-white select-none">
-						ÇEK!
+						PULL!
 					</span>
 				</button>
 				<p className="mt-8 text-white font-bold text-center opacity-80 animate-pulse">
-					Kazanmak için seri tıkla!
+					Click fast to win!
 				</p>
 			</div>
 		</div>

@@ -83,7 +83,7 @@ export default function HeadBallGame({
 
 	const startGoalSequence = (winnerName: string) => {
 		gameState.current.mode = "GOAL_SCORED";
-		gameState.current.goalText = winnerName + " ATTI!";
+		gameState.current.goalText = winnerName + " SCORED!";
 		gameState.current.countdownVal = 3;
 
 		const interval = setInterval(() => {
@@ -125,8 +125,12 @@ export default function HeadBallGame({
 			const state = game.current;
 			const mode = gameState.current.mode;
 
+			if (data.type === "NAV" && data.action === "EXIT") {
+				audioManager.play("fail");
+				onExit();
+			}
+
 			if (mode === "GAME_OVER") {
-				if (data.type === "NAV" && data.action === "EXIT") onExit();
 				if (data.type === "NAV" && data.action === "ENTER") handleRestart();
 				return;
 			}
@@ -299,7 +303,7 @@ export default function HeadBallGame({
 			ctx.fillText(gameState.current.countdownVal.toString(), 400, 350);
 			ctx.font = "30px sans-serif";
 			ctx.fillStyle = "#fff";
-			ctx.fillText("HAZIR OL!", 400, 420);
+			ctx.fillText("GET READY!", 400, 420);
 		}
 
 		if (mode === "GOAL_SCORED") {
@@ -313,7 +317,7 @@ export default function HeadBallGame({
 
 			ctx.fillStyle = "#fbbf24";
 			ctx.font = "bold 90px sans-serif";
-			ctx.fillText("GOL!", 400, 250);
+			ctx.fillText("GOAL!", 400, 250);
 
 			ctx.font = "bold 40px sans-serif";
 			ctx.fillStyle = "#fff";
@@ -321,7 +325,7 @@ export default function HeadBallGame({
 
 			ctx.font = "bold 30px monospace";
 			ctx.fillStyle = "#94a3b8";
-			ctx.fillText(`Başlıyor: ${gameState.current.countdownVal}`, 400, 450);
+			ctx.fillText(`Starting in: ${gameState.current.countdownVal}`, 400, 450);
 		}
 
 		if (mode === "GAME_OVER") {
@@ -454,5 +458,5 @@ function drawGameOver(ctx: CanvasRenderingContext2D, w: string) {
 	ctx.fillText(w, 400, 320);
 	ctx.font = "20px monospace";
 	ctx.fillStyle = "#94a3b8";
-	ctx.fillText("ÇIKIŞ [EXIT] - TEKRAR [ENTER]", 400, 400);
+	ctx.fillText("LEAVE [EXIT] - AGAIN [ENTER]", 400, 400);
 }

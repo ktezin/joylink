@@ -219,13 +219,13 @@ export default function FireWaterGame({
 	const killGame = (player: Entity) => {
 		audioManager.play("fail");
 		game.current.status = "GAME_OVER";
-		setGameStateDisplay(player.label + " YANDI! 💀");
+		setGameStateDisplay(player.label + " DIED!");
 	};
 
 	const finishGame = () => {
 		audioManager.play("finish");
 		game.current.status = "WON";
-		setGameStateDisplay("BÖLÜM GEÇİLDİ! 🎉");
+		setGameStateDisplay("LEVEL PASSED!");
 	};
 
 	const handleRestart = () => {
@@ -262,7 +262,7 @@ export default function FireWaterGame({
 						onClick={handleRestart}
 						className="bg-white text-black px-8 py-4 rounded-xl font-bold text-2xl hover:scale-110 transition-transform"
 					>
-						Tekrar Dene
+						Play Again
 					</button>
 				</div>
 			)}
