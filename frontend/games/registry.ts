@@ -5,6 +5,8 @@ import ClickController from "./clickwar/ClickwarController";
 import { GameConfig } from "@/types";
 import FireWaterGame from "./firewater/FireWaterGame";
 import FireWaterController from "./firewater/FireWaterController";
+import HeadBallGame from "./headball/HeadBallGame";
+import HeadBallController from "./headball/HeadBallController";
 
 export const GAMES: Record<string, GameConfig> = {
 	pong: {
@@ -30,5 +32,13 @@ export const GAMES: Record<string, GameConfig> = {
 		minPlayers: 1,
 		HostComponent: FireWaterGame,
 		ControllerComponent: FireWaterController,
+	},
+	headball: {
+		id: "headball",
+		name: "Kafa Topu",
+		description: "5 olan kazanır! Şut çekmek için yaklaş ve butona bas.",
+		minPlayers: 1,
+		HostComponent: HeadBallGame,
+		ControllerComponent: HeadBallController,
 	},
 };
