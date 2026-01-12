@@ -3,7 +3,7 @@ import { Entity } from "@/lib/engine/Entity";
 import { Physics } from "@/lib/engine/Physics";
 import { Renderer } from "@/lib/engine/Renderer";
 import { useJoyEngine } from "@/hooks/useJoyEngine";
-import { EngineConfig, Vector2 } from "@/lib/engine/types";
+import { EngineConfig } from "@/lib/engine/types";
 import { Player } from "@/types";
 import { LevelBuilder } from "@/lib/engine/LevelBuilder";
 import { ParticleSystem } from "@/lib/engine/ParticleSystem";
@@ -95,17 +95,13 @@ export default function FireWaterGame({
 				if (data.type === "MOVE") {
 					p.moveInput.x = data.val;
 
-					particles.current.emit(
+					particles.current.emitSmoke(
 						p.facingRight ? p.pos.x : p.pos.x + 30,
-						p.pos.y + 30,
-						p.color,
-						5,
-						1
+						p.pos.y + 30
 					);
 				} else if (data.type === "JUMP" && p.isGrounded) {
-					// play effect when only starting to jump for avoiding multiplications
 					if (p.vel.y === 0) {
-						particles.current.emit(p.pos.x, p.pos.y, p.color, 5, 10);
+						particles.current.emitSparks(p.pos.x, p.pos.y, p.color);
 						audioManager.play("jump", 0.3);
 					}
 
@@ -176,13 +172,8 @@ export default function FireWaterGame({
 								state.finishedPlayers.add(player.id);
 								door.setStats({ speed: 1 });
 								audioManager.play("score");
-								particles.current.emit(
-									player.pos.x,
-									player.pos.y,
-									player.color,
-									50,
-									10
-								);
+
+								particles.current.emitConfetti(player.pos.x, player.pos.y);
 							}
 						}
 					} else {
