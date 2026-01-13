@@ -17,6 +17,13 @@ export interface EntityStats {
 	acceleration: number;
 	jumpForce: number;
 	mass: number;
+
+	originalY?: number;
+	pressedY?: number;
+	originY?: number;
+	targetY?: number;
+
+	[key: string]: any;
 }
 
 export type EntityType = "SOLID" | "TRIGGER" | "PLAYER" | "BOX" | "BALL";
@@ -29,18 +36,18 @@ export interface GameState {
 export type ParticleShape = "circle" | "square" | "star" | "triangle" | "spark";
 
 export interface Particle {
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    life: number;
-    maxLife: number;
-    color: string;
-    size: number;
-    shape: ParticleShape;
-    gravity: number;
-    friction: number;
-    rotation: number;
-    rotationSpeed: number;
-    opacity: number;
+	x: number;
+	y: number;
+	vx: number;
+	vy: number;
+	life: number;
+	maxLife: number;
+	color: string;
+	size: number;
+	shape: ParticleShape;
+	gravity: number;
+	friction: number;
+	rotation: number;
+	rotationSpeed: number;
+	opacity: number;
 }

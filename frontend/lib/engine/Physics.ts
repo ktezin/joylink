@@ -4,7 +4,6 @@ import { EngineConfig } from "./types";
 export class Physics {
 	static update(entities: Entity[], obstacles: Entity[], config: EngineConfig) {
 		entities.forEach((entity) => {
-			// isGrounded her frame resetlenir
 			entity.isGrounded = false;
 
 			this.applyInput(entity, config);
@@ -22,23 +21,19 @@ export class Physics {
 	private static applyInput(entity: Entity, config: EngineConfig) {
 		if (entity.type !== "PLAYER") return;
 
-		// Platformer Modu
 		if (config.mode === "platformer") {
 			if (entity.moveInput.x !== 0) {
 				entity.vel.x += entity.moveInput.x * entity.stats.acceleration;
 			}
 			if (entity.moveInput.x > 0) entity.facingRight = true;
 			if (entity.moveInput.x < 0) entity.facingRight = false;
-		}
-		// Topdown Modu (Pong vb.)
-		else if (config.mode === "topdown") {
+		} else if (config.mode === "topdown") {
 			if (entity.moveInput.x !== 0)
 				entity.vel.x += entity.moveInput.x * entity.stats.acceleration;
 			if (entity.moveInput.y !== 0)
 				entity.vel.y += entity.moveInput.y * entity.stats.acceleration;
 		}
 
-		// Hız Limiti
 		const maxSpeed = entity.stats.speed;
 		if (entity.vel.x > maxSpeed) entity.vel.x = maxSpeed;
 		if (entity.vel.x < -maxSpeed) entity.vel.x = -maxSpeed;
@@ -48,15 +43,12 @@ export class Physics {
 			if (entity.vel.y < -maxSpeed) entity.vel.y = -maxSpeed;
 		}
 
-		// Eksen Kilitleri
 		if (entity.axisLock === "x") entity.vel.x = 0;
 		if (entity.axisLock === "y") entity.vel.y = 0;
 	}
 
 	private static applyMovement(entity: Entity, config: EngineConfig) {
-		// Yerçekimi
 		if (config.mode === "platformer" || entity.type === "BALL") {
-			// Zıplama anında veya havadayken yerçekimi uygula
 			if (!entity.isGrounded || entity.vel.y < 0) {
 				entity.vel.y += config.gravity.y;
 			}
@@ -65,12 +57,10 @@ export class Physics {
 		entity.pos.x += entity.vel.x;
 		entity.pos.y += entity.vel.y;
 
-		// Sürtünme
-		if (entity.label === "ball" || entity.type === "BALL") {
-			// Toplarda sürtünme olmasın veya çok az olsun (Pong için kritik)
-			// PongConfig'de friction 1 gelse bile buradaki mantık ezebiliyordu.
-			// O yüzden toplara dokunmuyoruz, sürtünmeyi config'e bırakıyoruz.
-			if (config.mode === "platformer") entity.vel.x *= 0.99; // Sadece platformer topunda hava sürtünmesi
+		if (entity.type === "BOX") {
+			entity.vel.x *= 0.92;
+		} else if (entity.label === "ball" || entity.type === "BALL") {
+			if (config.mode === "platformer") entity.vel.x *= 0.99;
 		} else {
 			entity.vel.x *= config.friction;
 			if (config.mode === "topdown") entity.vel.y *= config.friction;
@@ -82,21 +72,16 @@ export class Physics {
 			if (obs.type === "TRIGGER") continue;
 			if (entity.id === obs.id) continue;
 
-			// 1. DAİRESEL ÇARPIŞMA (HeadBall)
 			if (entity.type === "BALL" || obs.type === "BALL") {
 				const ball = entity.type === "BALL" ? entity : obs;
 				const box = entity.type === "BALL" ? obs : entity;
 				this.resolveCircleVsAABB(ball, box);
-			}
-			// 2. KUTU ÇARPIŞMASI (Pong, Oyuncu vs Duvar)
-			else {
+			} else {
 				const collision = this.getAABBCollision(entity, obs);
-				if (collision) this.resolveAABBCollision(entity, collision);
+				if (collision) this.resolveAABBCollision(entity, obs, collision);
 			}
 		}
 	}
-
-	// --- KUTU FİZİĞİ (AABB) ---
 
 	private static getAABBCollision(entity: Entity, obs: Entity) {
 		const entCenterX = entity.pos.x + entity.size.x / 2;
@@ -119,43 +104,45 @@ export class Physics {
 		return null;
 	}
 
-	// DÜZELTME BURADA YAPILDI: Top kontrolü eklendi
-	private static resolveAABBCollision(entity: Entity, col: any) {
-		// Eğer çarpışan şey top ise (Pong'da BOX olarak tanımlı ama id'si ball veya label'ı ball)
+	private static resolveAABBCollision(entity: Entity, obs: Entity, col: any) {
 		const isBall = entity.label === "ball" || entity.id.includes("ball");
 
+		if (entity.type === "PLAYER" && obs.type === "BOX") {
+			if (col.axis === "x") {
+				if (col.dir > 0) {
+					obs.pos.x += col.overlap;
+				} else {
+					obs.pos.x -= col.overlap;
+				}
+
+				obs.vel.x = entity.vel.x;
+				return;
+			}
+		}
+
 		if (col.axis === "y") {
-			// Yön düzeltme
 			if (col.dir > 0) entity.pos.y += col.overlap;
 			else entity.pos.y -= col.overlap;
 
 			if (isBall) {
-				// TOP İSE SEK (Bounce)
 				entity.vel.y *= -1;
 			} else {
-				// KARAKTER İSE DUR (Stop)
 				entity.vel.y = 0;
 				if (col.dir < 0) entity.isGrounded = true;
 			}
 		} else {
-			// Yön düzeltme
 			if (col.dir > 0) entity.pos.x += col.overlap;
 			else entity.pos.x -= col.overlap;
 
 			if (isBall) {
-				// TOP İSE SEK (Bounce)
 				entity.vel.x *= -1;
 			} else {
-				// KARAKTER İSE DUR (Stop)
 				entity.vel.x = 0;
 			}
 		}
 	}
 
-	// --- DAİRE FİZİĞİ (HeadBall) ---
-
 	private static resolveCircleVsAABB(ball: Entity, box: Entity) {
-		// ... (Bu kısım HeadBall için zaten düzgün çalışıyor, aynen kalabilir) ...
 		const ballCx = ball.pos.x + ball.size.x / 2;
 		const ballCy = ball.pos.y + ball.size.y / 2;
 		const boxCx = box.pos.x + box.size.x / 2;
@@ -196,38 +183,32 @@ export class Physics {
 		ball.vel.y += impulse * ny;
 	}
 
-	// --- DÜNYA SINIRLARI ---
-
 	private static checkWorldBounds(entity: Entity, config: EngineConfig) {
 		const isBall = entity.type === "BALL" || entity.label === "ball";
 
-		// Sol-Sağ
 		if (entity.pos.x < 0) {
 			entity.pos.x = 0;
-			if (isBall) entity.vel.x *= -1; // Tam sekme
+			if (isBall) entity.vel.x *= -1;
 			else entity.vel.x = 0;
 		}
 		if (entity.pos.x + entity.size.x > config.worldWidth) {
 			entity.pos.x = config.worldWidth - entity.size.x;
-			if (isBall) entity.vel.x *= -1; // Tam sekme
+			if (isBall) entity.vel.x *= -1;
 			else entity.vel.x = 0;
 		}
 
-		// Tavan
 		if (entity.pos.y < -500) entity.vel.y = 0;
 
-		// Zemin
 		if (entity.pos.y + entity.size.y > config.worldHeight) {
 			entity.pos.y = config.worldHeight - entity.size.y;
 
 			if (isBall) {
-				// Platformer topuysa sönümle, Pong topuysa tam sek
 				if (config.mode === "platformer") {
 					entity.vel.y *= -0.6;
 					if (Math.abs(entity.vel.y) < 2) entity.vel.y = 0;
 					entity.vel.x *= 0.95;
 				} else {
-					entity.vel.y *= -1; // Pong için tam sekme
+					entity.vel.y *= -1;
 				}
 			} else {
 				entity.vel.y = 0;
@@ -236,13 +217,20 @@ export class Physics {
 		}
 	}
 
-	// Yardımcı
 	static checkOverlap(a: Entity, b: Entity, padding: number = 0): boolean {
 		return (
 			a.pos.x < b.pos.x + b.size.x + padding &&
 			a.pos.x + a.size.x > b.pos.x - padding &&
 			a.pos.y < b.pos.y + b.size.y + padding &&
 			a.pos.y + a.size.y > b.pos.y - padding
+		);
+	}
+
+	static isRiding(rider: Entity, carrier: Entity): boolean {
+		return (
+			rider.pos.x + rider.size.x > carrier.pos.x &&
+			rider.pos.x < carrier.pos.x + carrier.size.x &&
+			Math.abs(rider.pos.y + rider.size.y - carrier.pos.y) < 5
 		);
 	}
 }

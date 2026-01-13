@@ -52,7 +52,7 @@ io.on("connection", (socket) => {
 
 		if (room) {
 			if (room.players.length >= 2) {
-				socket.emit("error", "Oda dolu! (Maksimum 2 Oyuncu)");
+				socket.emit("error", "Room is full! (Max 2 Players)");
 				return;
 			}
 
@@ -70,7 +70,7 @@ io.on("connection", (socket) => {
 
 			console.log(`Player ${name} (${socket.id}) joined room ${roomId}`);
 		} else {
-			socket.emit("error", "Oda bulunamadı!");
+			socket.emit("error", "Room not found!");
 		}
 	});
 
@@ -81,7 +81,7 @@ io.on("connection", (socket) => {
 			if (!room) return;
 
 			if (room.players[0] === socket.id) {
-				console.log(`Mobil Admin oyunu başlatıyor: ${data.gameId}`);
+				console.log(`Game starting: ${data.gameId}`);
 
 				io.to(data.roomId).emit("game_started", { gameId: data.gameId });
 			}
@@ -89,7 +89,7 @@ io.on("connection", (socket) => {
 	);
 
 	socket.on("start_game", (data: { roomId: string; gameId: string }) => {
-		console.log(`Oyun Başlatılıyor: Oda ${data.roomId} -> Oyun ${data.gameId}`);
+		console.log(`Game starting: Room ${data.roomId} -> Game ${data.gameId}`);
 		io.to(data.roomId).emit("game_started", { gameId: data.gameId });
 	});
 
@@ -143,7 +143,7 @@ io.on("connection", (socket) => {
 				room.players.splice(playerIndex, 1);
 
 				io.to(room.hostSocketId).emit("player_left", { playerId: socket.id });
-				
+
 				console.log(`Player ${socket.id} left room ${roomId}`);
 
 				if (playerIndex === 0 && room.players.length > 0) {
