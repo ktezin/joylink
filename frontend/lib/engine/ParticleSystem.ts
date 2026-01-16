@@ -53,6 +53,27 @@ export class ParticleSystem {
 		}
 	}
 
+	emitSplash(x: number, y: number, color: string, amount: number = 5) {
+		for (let i = 0; i < amount; i++) {
+			this.particles.push({
+				x: x + (Math.random() * 20 - 10),
+				y: y,
+				vx: (Math.random() - 0.5) * 4,
+				vy: -(Math.random() * 4 + 3),
+				life: 1.0,
+				maxLife: 1.0,
+				color: color,
+				size: Math.random() * 3 + 2,
+				shape: "circle",
+				gravity: 0.3,
+				friction: 0.95,
+				rotation: 0,
+				rotationSpeed: 0,
+				opacity: 1,
+			});
+		}
+	}
+
 	emitExplosion(x: number, y: number, color: string, count: number = 10) {
 		this.emit({
 			x,

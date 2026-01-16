@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Entity } from "@/lib/engine/Entity";
 import { Physics } from "@/lib/engine/Physics";
 import { Renderer } from "@/lib/engine/Renderer";
@@ -11,16 +11,37 @@ import { audioManager } from "@/lib/audio/AudioManager";
 
 const CONFIG: EngineConfig = {
 	mode: "platformer",
-	gravity: { x: 0, y: 0.2 },
+	gravity: { x: 0, y: 0.05 },
 	friction: 0.88,
 	worldWidth: 800,
 	worldHeight: 600,
+	disablePlayerCollision: true,
 };
 
 const COMMON_LEGEND = {
 	"1": { type: "SOLID", label: "wall", color: "#334155" },
-	L: { type: "TRIGGER", label: "lava", color: "#ef4444" },
-	S: { type: "TRIGGER", label: "water", color: "#3b82f6" },
+	"[": {
+		type: "SOLID",
+		label: "slope_left",
+		color: "#334155",
+		shape: "triangle_left",
+	},
+	"]": {
+		type: "SOLID",
+		label: "slope_right",
+		color: "#334155",
+		shape: "triangle_right",
+	},
+	L: { type: "SOLID", label: "lava", color: "#ef4444", height: 36, offsetY: 4 },
+	S: {
+		type: "SOLID",
+		label: "water",
+		color: "#3b82f6",
+		height: 36,
+		offsetY: 4,
+	},
+
+	A: { type: "SOLID", label: "acid", color: "#90ff0a", height: 36, offsetY: 4 },
 	F: {
 		type: "TRIGGER",
 		label: "door_red",
@@ -43,57 +64,148 @@ const LEVELS = [
 		map: [
 			"11111111111111111111",
 			"10000000000000000001",
-			"10F00000000000000W01",
-			"10100000000000000101",
+			"10000000000000000001",
+			"111111[LL][SS]110001",
+			"10000000000000000001",
+			"10000000000000000001",
+			"1000111111[AA]111111",
+			"10000000000000000001",
+			"10000000000000000001",
+			"11111111111111111001",
 			"10000000000000000001",
 			"10000000000000000001",
 			"10000000000000000001",
-			"10000000000000000001",
-			"10000000000000000001",
-			"10000000000000000001",
-			"11111111111111111111",
-			"10000000000000000001",
-			"11111110000000000011",
-			"10000000000000000011",
-			"11111111LLL11SS11111",
+			"10F0W000000000000001",
+			"11111111[AA]11111111",
 		],
 		setup: () => {
 			const elv = new Entity(
 				"elv1",
 				"SOLID",
 				"elevator",
-				560,
-				240,
+				680,
+				360,
 				80,
 				20,
 				"#a855f7"
 			);
 			elv.stats = {
 				...elv.stats,
-				originY: 240,
-				targetY: 540,
+				originY: 360,
+				targetY: 555,
 				speed: 3,
 				type: "vertical",
 			};
 
-			const btn = new Entity(
+			const btn1 = new Entity(
 				"btn1",
 				"TRIGGER",
 				"button",
-				440,
-				550,
+				293,
+				356,
 				40,
 				10,
 				"#eab308"
 			);
-			btn.stats = {
-				...btn.stats,
+			btn1.stats = {
+				...btn1.stats,
+				originalY: 350,
+				pressedY: 356,
+				linkedElevatorId: "elv1",
+			};
+
+			const btn2 = new Entity(
+				"btn1",
+				"TRIGGER",
+				"button",
+				500,
+				552,
+				40,
+				10,
+				"#eab308"
+			);
+			btn2.stats = {
+				...btn2.stats,
 				originalY: 550,
 				pressedY: 555,
 				linkedElevatorId: "elv1",
 			};
 
-			return { buttons: [btn], elevators: [elv] };
+			return { buttons: [btn1, btn2], elevators: [elv] };
+		},
+	},
+	{
+		map: [
+			"11111111111111111111",
+			"10000000000000000001",
+			"10000000000000000001",
+			"111111[LL][SS]110001",
+			"10000000000000000001",
+			"10000000000000000001",
+			"1000111111[AA]111111",
+			"10000000000000000001",
+			"10000000000000000001",
+			"11111111111111111001",
+			"10000000000000000001",
+			"10000000000000000001",
+			"10000000000000000001",
+			"10F0W000000000000001",
+			"11111111[AA]11111111",
+		],
+		setup: () => {
+			const elv = new Entity(
+				"elv1",
+				"SOLID",
+				"elevator",
+				680,
+				360,
+				80,
+				20,
+				"#a855f7"
+			);
+			elv.stats = {
+				...elv.stats,
+				originY: 360,
+				targetY: 555,
+				speed: 3,
+				type: "vertical",
+			};
+
+			const btn1 = new Entity(
+				"btn1",
+				"TRIGGER",
+				"button",
+				293,
+				356,
+				40,
+				10,
+				"#eab308"
+			);
+			btn1.stats = {
+				...btn1.stats,
+				originalY: 350,
+				pressedY: 356,
+				linkedElevatorId: "elv1",
+			};
+
+			const btn2 = new Entity(
+				"btn1",
+				"TRIGGER",
+				"button",
+				500,
+				552,
+				40,
+				10,
+				"#eab308"
+			);
+			btn2.stats = {
+				...btn2.stats,
+				originalY: 550,
+				pressedY: 555,
+				linkedElevatorId: "elv1",
+			};
+
+			return { buttons: [btn1, btn2], elevators: [elv] };
 		},
 	},
 ];
@@ -134,6 +246,8 @@ export default function FireWaterGame({
 		finishedPlayers: new Set<string>(),
 		status: "PLAYING" as "PLAYING" | "GAME_OVER" | "WON" | "FINISHED_ALL",
 	});
+
+	const timeRef = useRef(0);
 
 	const startLevel = (idx: number) => {
 		const levelData = loadLevel(idx);
@@ -178,17 +292,20 @@ export default function FireWaterGame({
 			if (game.current.status === "PLAYING") {
 				if (data.type === "MOVE") {
 					p.moveInput.x = data.val;
-					if (data.val !== 0)
+					/*if (data.val !== 0)
 						particles.current.emitSmoke(
 							p.facingRight ? p.pos.x : p.pos.x + 30,
 							p.pos.y + 30
-						);
+						);*/
 				} else if (data.type === "JUMP" && p.isGrounded) {
 					if (p.vel.y === 0) {
 						particles.current.emitSparks(p.pos.x, p.pos.y, p.color);
 						audioManager.play("jump", 0.3);
 					}
 					p.vel.y = -p.stats.jumpForce;
+					if (p.moveInput.x !== 0) {
+						p.vel.x += p.moveInput.x * 4;
+					}
 				}
 			} else {
 				if (data.type === "NAV" && data.action === "ENTER") {
@@ -210,6 +327,9 @@ export default function FireWaterGame({
 
 	const canvasRef = useJoyEngine(800, 600, CONFIG, (ctx) => {
 		const state = game.current;
+
+		timeRef.current += 0.02;
+
 		Renderer.clear(ctx, 800, 600);
 
 		players.forEach((p, index) => {
@@ -217,12 +337,12 @@ export default function FireWaterGame({
 				const isFire = index === 0;
 
 				const fireSpawn: Vector2 = {
-					x: 80,
-					y: 470,
+					x: 55,
+					y: 60,
 				};
 				const waterSpawn: Vector2 = {
-					x: 80,
-					y: 545,
+					x: 90,
+					y: 60,
 				};
 
 				const newP = new Entity(
@@ -235,10 +355,54 @@ export default function FireWaterGame({
 					30,
 					isFire ? "#ef4444" : "#3b82f6"
 				);
-				newP.setStats({ speed: 4, acceleration: 2, jumpForce: 8 });
+				newP.setStats({ speed: 2, acceleration: 1, jumpForce: 4 });
 				state.players.set(p.id, newP);
 			}
 		});
+
+		state.walls.forEach((w) => Renderer.draw(ctx, w));
+
+		state.mechanics.buttons.forEach((b) => {
+			const originalY = b.stats.originalY ?? b.pos.y;
+			ctx.fillStyle = "#713f12";
+			ctx.fillRect(b.pos.x - 5, originalY + 5, b.size.x + 10, 5);
+			ctx.fillStyle = b.color;
+			ctx.fillRect(b.pos.x, b.pos.y, b.size.x, b.size.y);
+		});
+
+		state.mechanics.elevators.forEach((e) => {
+			ctx.fillStyle = e.color;
+			ctx.fillRect(e.pos.x, e.pos.y, e.size.x, e.size.y);
+			ctx.fillStyle = "rgba(0,0,0,0.2)";
+			ctx.fillRect(e.pos.x, e.pos.y + e.size.y - 5, e.size.x, 5);
+			if (e.stats.type === "vertical") {
+				ctx.strokeStyle = "rgba(255,255,255,0.2)";
+				ctx.beginPath();
+				ctx.moveTo(e.pos.x + 10, 0);
+				ctx.lineTo(e.pos.x + 10, e.pos.y);
+				ctx.moveTo(e.pos.x + e.size.x - 10, 0);
+				ctx.lineTo(e.pos.x + e.size.x - 10, e.pos.y);
+				ctx.stroke();
+			}
+		});
+
+		state.doors.forEach((d) => {
+			ctx.fillStyle = d.color;
+			ctx.fillRect(d.pos.x, d.pos.y, d.size.x, d.size.y);
+			if (d.stats.speed != 1) {
+				ctx.fillStyle = "#000";
+				ctx.fillRect(d.pos.x + 5, d.pos.y + 5, d.size.x - 10, d.size.y - 5);
+			}
+		});
+
+		state.hazards.forEach((h) => Renderer.draw(ctx, h, timeRef.current));
+
+		state.boxes.forEach((b) => Renderer.draw(ctx, b));
+
+		state.players.forEach((p) => Renderer.draw(ctx, p));
+
+		particles.current.update();
+		particles.current.draw(ctx);
 
 		if (state.status === "PLAYING") {
 			const playerList = Array.from(state.players.values());
@@ -276,10 +440,9 @@ export default function FireWaterGame({
 			elevators.forEach((elv) => {
 				const type = elv.stats.type;
 				const speed = elv.stats.speed;
-				const linkedBtn = buttons.find(
-					(b) => b.stats.linkedElevatorId === elv.id
+				const isActive = buttons.some(
+					(b) => b.stats.linkedElevatorId === elv.id && b.stats.isActive
 				);
-				const isActive = linkedBtn ? linkedBtn.stats.isActive : false;
 
 				if (type === "vertical") {
 					const targetY = elv.stats.targetY ?? elv.pos.y;
@@ -313,16 +476,38 @@ export default function FireWaterGame({
 
 			Physics.update(allDynamicEntities, staticObstacles, CONFIG);
 
+			state.hazards.forEach((obj) => {
+				if (Math.random() < 0.05) {
+					particles.current.emitSplash(
+						obj.pos.x + Math.random() * obj.size.x,
+						obj.pos.y,
+						obj.color,
+						1
+					);
+				}
+			});
+
 			playerList.forEach((player) => {
 				const isFire = player.color === "#ef4444";
 				state.hazards.forEach((obj) => {
-					if (Physics.checkOverlap(player, obj, 1)) {
+					if (Physics.checkTopSurface(player, obj)) {
 						if (obj.label === "lava" && !isFire) killGame(player);
 						if (obj.label === "water" && isFire) killGame(player);
+						if (obj.label === "acid") killGame(player);
+					}
+					const isMoving =
+						Math.abs(player.vel.x) > 0.1 || Math.abs(player.vel.y) > 0.1;
+					if (isMoving && Math.random() < 0.1) {
+						particles.current.emitSplash(
+							player.pos.x + 15,
+							player.pos.y + 30,
+							obj.color,
+							2
+						);
 					}
 				});
 				state.doors.forEach((door) => {
-					if (Physics.checkOverlap(player, door, 10)) {
+					if (Physics.checkOverlap(player, door, -10)) {
 						if (
 							(door.label === "door_red" && isFire) ||
 							(door.label === "door_blue" && !isFire)
@@ -354,47 +539,6 @@ export default function FireWaterGame({
 				finishGame();
 			}
 		}
-
-		particles.current.update();
-		particles.current.draw(ctx);
-
-		state.mechanics.buttons.forEach((b) => {
-			const originalY = b.stats.originalY ?? b.pos.y;
-			ctx.fillStyle = "#713f12";
-			ctx.fillRect(b.pos.x - 5, originalY + 5, b.size.x + 10, 5);
-			ctx.fillStyle = b.color;
-			ctx.fillRect(b.pos.x, b.pos.y, b.size.x, b.size.y);
-		});
-
-		state.mechanics.elevators.forEach((e) => {
-			ctx.fillStyle = e.color;
-			ctx.fillRect(e.pos.x, e.pos.y, e.size.x, e.size.y);
-			ctx.fillStyle = "rgba(0,0,0,0.2)";
-			ctx.fillRect(e.pos.x, e.pos.y + e.size.y - 5, e.size.x, 5);
-			if (e.stats.type === "vertical") {
-				ctx.strokeStyle = "rgba(255,255,255,0.2)";
-				ctx.beginPath();
-				ctx.moveTo(e.pos.x + 10, 0);
-				ctx.lineTo(e.pos.x + 10, e.pos.y);
-				ctx.moveTo(e.pos.x + e.size.x - 10, 0);
-				ctx.lineTo(e.pos.x + e.size.x - 10, e.pos.y);
-				ctx.stroke();
-			}
-		});
-
-		state.doors.forEach((d) => {
-			ctx.fillStyle = d.color;
-			ctx.fillRect(d.pos.x, d.pos.y, d.size.x, d.size.y);
-			if (d.stats.speed != 1) {
-				ctx.fillStyle = "#000";
-				ctx.fillRect(d.pos.x + 5, d.pos.y + 5, d.size.x - 10, d.size.y - 5);
-			}
-		});
-
-		state.hazards.forEach((h) => Renderer.draw(ctx, h));
-		state.walls.forEach((w) => Renderer.draw(ctx, w));
-		state.boxes.forEach((b) => Renderer.draw(ctx, b));
-		state.players.forEach((p) => Renderer.draw(ctx, p));
 	});
 
 	const killGame = (player: Entity) => {
