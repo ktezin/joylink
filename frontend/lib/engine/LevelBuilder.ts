@@ -1,13 +1,5 @@
 import { Entity } from "./Entity";
-import { EntityType } from "./types";
-
-type LegendDefinition = {
-	type: EntityType;
-	label: string;
-	color: string;
-	height?: number;
-	offsetY?: number;
-};
+import { LegendDefinition } from "./types";
 
 type Legend = Record<string, LegendDefinition>;
 
@@ -44,10 +36,16 @@ export class LevelBuilder {
 					def.color
 				);
 
-				if (def.type === "SOLID") walls.push(entity);
-				else if (def.type === "BOX") boxes.push(entity);
-				else if (def.label.includes("lava") || def.label.includes("water"))
+				entity.stats.shape = def.shape || "rectangle";
+
+				if (def.type === "BOX") boxes.push(entity);
+				else if (
+					def.label.includes("lava") ||
+					def.label.includes("water") ||
+					def.label.includes("acid")
+				)
 					hazards.push(entity);
+				else if (def.type === "SOLID") walls.push(entity);
 				else if (def.label.includes("door")) doors.push(entity);
 			});
 		});

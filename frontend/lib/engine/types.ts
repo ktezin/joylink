@@ -10,6 +10,7 @@ export interface EngineConfig {
 	worldWidth: number;
 	worldHeight: number;
 	debug?: boolean;
+	disablePlayerCollision?: boolean;
 }
 
 export interface EntityStats {
@@ -51,3 +52,13 @@ export interface Particle {
 	rotationSpeed: number;
 	opacity: number;
 }
+
+
+export type LegendDefinition = {
+	type: EntityType;
+	label: string;
+	color: string;
+	height?: number;
+	offsetY?: number;
+	shape?: "rectangle" | "triangle_left" | "triangle_right";
+};
