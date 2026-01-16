@@ -9,10 +9,22 @@ export class Physics {
 			this.applyInput(entity, config);
 			this.applyMovement(entity, config);
 
-			const allObstacles = [
-				...obstacles,
-				...entities.filter((e) => e.id !== entity.id),
-			];
+			const dynamicObstacles = entities.filter((e) => {
+				if (e.id === entity.id) return false;
+
+				if (
+					config.disablePlayerCollision &&
+					entity.type === "PLAYER" &&
+					e.type === "PLAYER"
+				) {
+					return false;
+				}
+
+				return true;
+			});
+
+			const allObstacles = [...obstacles, ...dynamicObstacles];
+
 			this.checkCollisions(entity, allObstacles);
 			this.checkWorldBounds(entity, config);
 		});
@@ -109,17 +121,14 @@ export class Physics {
 
 		if (entity.type === "PLAYER" && obs.type === "BOX") {
 			if (col.axis === "x") {
-				if (col.dir > 0) {
-					obs.pos.x += col.overlap;
-				} else {
-					obs.pos.x -= col.overlap;
-				}
-
+				if (col.dir > 0) obs.pos.x += col.overlap;
+				else obs.pos.x -= col.overlap;
 				obs.vel.x = entity.vel.x;
 				return;
 			}
 		}
 
+		// Floor or ceiling
 		if (col.axis === "y") {
 			if (col.dir > 0) entity.pos.y += col.overlap;
 			else entity.pos.y -= col.overlap;
@@ -130,7 +139,23 @@ export class Physics {
 				entity.vel.y = 0;
 				if (col.dir < 0) entity.isGrounded = true;
 			}
-		} else {
+		}
+		// Walls or ramps
+		else {
+			// Auto step
+			if (!isBall) {
+				const stepHeight = 12;
+
+				const obsTop = obs.pos.y;
+				const playerBottom = entity.pos.y + entity.size.y;
+				const heightDiff = playerBottom - obsTop;
+
+				if (heightDiff > 0 && heightDiff <= stepHeight) {
+					entity.pos.y = obsTop - entity.size.y - 0.1;
+					return;
+				}
+			}
+			// Wall collision
 			if (col.dir > 0) entity.pos.x += col.overlap;
 			else entity.pos.x -= col.overlap;
 
@@ -215,6 +240,27 @@ export class Physics {
 				entity.isGrounded = true;
 			}
 		}
+	}
+
+	static checkTopSurface(
+		entity: Entity,
+		surface: Entity,
+		paddingX = 10,
+		sensorHeight = 15
+	): boolean {
+		const sensor = {
+			x: surface.pos.x + paddingX,
+			y: surface.pos.y - 5,
+			w: surface.size.x - paddingX * 2,
+			h: sensorHeight,
+		};
+
+		return (
+			entity.pos.x < sensor.x + sensor.w &&
+			entity.pos.x + entity.size.x > sensor.x &&
+			entity.pos.y < sensor.y + sensor.h &&
+			entity.pos.y + entity.size.y > sensor.y
+		);
 	}
 
 	static checkOverlap(a: Entity, b: Entity, padding: number = 0): boolean {
